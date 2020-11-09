@@ -26,25 +26,30 @@ Skywalker の monitoring 用 CloudFormation に関するドキュメントです
 
 ## デプロイ手順
 
-1. S3バケットの作成
+1. Lambdaの実行に必要なパッケージのインストール
+    ```
+    cd src/lambda/ && yarn install && cd ../..
+    ```
+
+2. S3バケットの作成
 
     - monitoringのCFnテンプレートはネスト構成のためStackをデプロイする際に利用するCFnテンプレート格納用のS3バケットを作成します。
 
     - 作成したS3バケットの名称は、「手順: 2.CloudFormation のコンフィグレーションの作成」で利用します。
 
-2. CloudFormation のコンフィグレーションの作成
+3. CloudFormation のコンフィグレーションの作成
 
     - scripts/env.templateをscripts/.envにコピーします。
 
 |  設定項目              |  設定内容                                                                                         |
 | ---------------------- | ------------------------------------------------------------------------------------------------- |
 |  SYSTEM_ID             |  skywalker                                                                                        |
-|  COMPONENT_ID          |  monitoring                                                                                 |
-|  S3_BUCKET_NAME        |  「手順: 2. S3バケットの作成」で作成したS3バケット名                                              |
-|  AWS_PROFILE           |  AWS CLIのプロファイル名(defaultコンフィグレーションを利用する場合は、指定する必要はありません。) |
-|  TABLE_NAME     |  監視対象の DynamoDB テーブル名                                                                                     |
-|  API_NAME |  監視対象の API Gateway 名                                             |
-|  IMPORTER_REPOSITORY_ARN    |  監視対象のインポータ用S3バケットのArn                                                                            |
+|  COMPONENT_ID          |  monitoring                                                                                       |
+|  S3_BUCKET_NAME        |  「手順: 2. S3バケットの作成」で作成したS3バケット名                                                     |
+|  AWS_PROFILE           |  AWS CLIのプロファイル名(defaultコンフィグレーションを利用する場合は、指定する必要はありません。)              |
+|  TABLE_NAME     |  監視対象の DynamoDB テーブル名                                                                             |
+|  API_NAME |  監視対象の API Gateway 名                                                                                       |
+|  IMPORTER_REPOSITORY_ARN    |  監視対象のインポータ用S3バケットのArn                                        |
 |  IMPORTER_PIPELINE_NAME |  監視対象のインポータ用パイプライン名                                              |
 |  FRONTEND_URL |  外形監視のフロントエンドURL                                              |
 |  BACKEND_URL |  外形監視のバックエンドURL                                               |
