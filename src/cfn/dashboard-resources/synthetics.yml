@@ -1,0 +1,182 @@
+AWSTemplateFormatVersion: "2010-09-09"
+Description: "synthetics Resources of a monitoring"
+
+Parameters:
+  ParentStackName:
+    Type: "String"
+  SystemID:
+    Type: "String"
+  ComponentID:
+    Type: "String"
+  LambdaCodeBucket:
+    Type: "String"
+  LambdaCodeKey:
+    Type: "String"
+  FrontendUrl:
+    Type: "String"
+  BackendUrl:
+    Type: "String"
+  UserPoolId:
+    Type: "String"
+  ClientId:
+    Type: "String"
+  CognitoUsername:
+    Type: "String"
+  CognitoPassword:
+    Type: "String"
+
+Resources:
+
+  ScheduledEventHandlingRule:
+    Type: "AWS::Events::Rule"
+    Properties:
+      ScheduleExpression: "rate(5 minutes)"
+      State: "ENABLED"
+      Targets:
+        - Arn: !GetAtt FrontendScheduledEventHandlingFunction.Arn
+          Id: "FrontendLambda"
+        - Arn: !GetAtt BackendScheduledEventHandlingFunction.Arn
+          Id: "BackendLambda"
+
+  FrontendScheduledEventHandlingFunction:
+    Type: "AWS::Lambda::Function"
+    DependsOn:
+      - LambdaRole
+    Properties:
+      Handler: "frontendHealthCheckFunction.handler"
+      Runtime: "nodejs12.x"
+      MemorySize: 128
+      Timeout: 5
+      Role: !GetAtt LambdaRole.Arn
+      Code:
+        S3Bucket: !Ref LambdaCodeBucket
+        S3Key: !Ref LambdaCodeKey
+      Environment:
+        Variables:
+          URL: !Ref FrontendUrl
+
+  BackendScheduledEventHandlingFunction:
+    Type: "AWS::Lambda::Function"
+    DependsOn:
+      - LambdaRole
+    Properties:
+      Handler: "backendHealthCheckFunction.handler"
+      Runtime: "nodejs12.x"
+      MemorySize: 128
+      Timeout: 5
+      Role: !GetAtt LambdaRole.Arn
+      Code:
+        S3Bucket: !Ref LambdaCodeBucket
+        S3Key: !Ref LambdaCodeKey
+      Environment:
+        Variables:
+          URL: !Ref BackendUrl
+          USER_POOL_ID: !Ref UserPoolId
+          CLIENT_ID: !Ref ClientId
+          USERNAME: !Ref CognitoUsername
+          PASSWORD: !Ref CognitoPassword
+
+  LambdaFunctionPolicy:
+    Type: "AWS::IAM::ManagedPolicy"
+    Properties:
+      Path: "/"
+      PolicyDocument:
+        Version: "2012-10-17"
+        Statement:
+          - Action:
+              - "logs:CreateLogGroup"
+              - "logs:CreateLogStream"
+              - "logs:PutLogEvents"
+              - "cloudwatch:PutMetricData"
+              - "cognito-idp:AdminInitiateAuth"
+            Effect: "Allow"
+            Resource: "*"
+
+  LambdaRole:
+    Type: "AWS::IAM::Role"
+    Properties:
+      RoleName: !Sub "${SystemID}-${ComponentID}-start-lambda-function-Role"
+      Path: "/"
+      AssumeRolePolicyDocument:
+        Version: "2012-10-17"
+        Statement:
+          - Effect: "Allow"
+            Principal:
+              Service:
+                - "lambda.amazonaws.com"
+            Action:
+              - "sts:AssumeRole"
+      ManagedPolicyArns:
+        - !Ref LambdaFunctionPolicy
+
+  FrontendScheduledEventHandlingFunctionLogGroup:
+    Type: "AWS::Logs::LogGroup"
+    DependsOn:
+      - "FrontendScheduledEventHandlingFunction"
+    Properties:
+      RetentionInDays: 30
+      LogGroupName: !Sub "/aws/lambda/${FrontendScheduledEventHandlingFunction}"
+  
+  BackendScheduledEventHandlingFunctionLogGroup:
+    Type: "AWS::Logs::LogGroup"
+    DependsOn:
+      - "BackendScheduledEventHandlingFunction"
+    Properties:
+      RetentionInDays: 30
+      LogGroupName: !Sub "/aws/lambda/${BackendScheduledEventHandlingFunction}"
+
+  FrontendAlarm:
+    Type: "AWS::CloudWatch::Alarm"
+    Properties:
+      AlarmName: !Sub "${SystemID}-FrontendAlarm"
+      ActionsEnabled: False
+      ComparisonOperator: LessThanThreshold
+      EvaluationPeriods: 2
+      DatapointsToAlarm: 2
+      Namespace: urlHealth
+      MetricName: urlHealth
+      Dimensions: 
+        - Name: url
+          Value: !Ref FrontendUrl
+      Period: 300
+      Statistic: Average
+      Threshold: 1
+
+  BackendAlarm:
+    Type: "AWS::CloudWatch::Alarm"
+    Properties:
+      AlarmName: !Sub "${SystemID}-BackendAlarm"
+      ActionsEnabled: False
+      ComparisonOperator: LessThanThreshold
+      EvaluationPeriods: 2
+      DatapointsToAlarm: 2
+      Namespace: urlHealth
+      MetricName: urlHealth
+      Dimensions: 
+        - Name: url
+          Value: !Ref BackendUrl
+      Period: 300
+      Statistic: Average
+      Threshold: 1
+
+  LambdaPermissionForFrontendTriggeredEventHandlingFunction:
+    Type: 'AWS::Lambda::Permission'
+    Properties:
+      Action: 'lambda:InvokeFunction'
+      FunctionName: !Ref FrontendScheduledEventHandlingFunction
+      Principal: "events.amazonaws.com"
+      SourceArn: !GetAtt ScheduledEventHandlingRule.Arn
+
+  LambdaPermissionForBackendTriggeredEventHandlingFunction:
+    Type: 'AWS::Lambda::Permission'
+    Properties:
+      Action: 'lambda:InvokeFunction'
+      FunctionName: !Ref BackendScheduledEventHandlingFunction
+      Principal: "events.amazonaws.com"
+      SourceArn: !GetAtt ScheduledEventHandlingRule.Arn
+
+Outputs:
+  FrontendAlarmArn:
+    Value: !GetAtt FrontendAlarm.Arn
+  BackendAlarmArn:
+    Value: !GetAtt BackendAlarm.Arn

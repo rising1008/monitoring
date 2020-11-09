@@ -1,0 +1,277 @@
+AWSTemplateFormatVersion: "2010-09-09"
+Description: "dashboard Resources of a monitoring"
+
+Parameters:
+  ParentStackName:
+    Type: "String"
+  SystemID:
+    Type: "String"
+  ComponentID:
+    Type: "String"
+  TableName:
+    Type: "String"
+  ApiName:
+    Type: "String"
+  ImporterPipelineName:
+    Type: "String"
+  FrontendAlarmArn:
+    Type: "String"
+  BackendAlarmArn:
+    Type: "String"
+
+Resources:
+
+  DashBoard:
+    Type: AWS::CloudWatch::Dashboard
+    Properties:
+      DashboardName: !Sub "${SystemID}-dashboard"
+      DashboardBody: !Sub |
+        {
+          "widgets": [
+            {
+              "type": "text",
+              "x": 0,
+              "y": 0,
+              "width": 24,
+              "height": 1,
+              "properties": {
+                "markdown": "\n# SkyWalker Monitoring Dashboard\n"
+              }
+            },
+            {
+              "type": "alarm",
+              "x": 0,
+              "y": 1,
+              "width": 6,
+              "height": 3,
+              "properties": {
+                "title": "【死活監視】",
+                "alarms": [
+                  "${FrontendAlarmArn}",
+                  "${BackendAlarmArn}"
+                ]
+              }
+            },
+            {
+              "type": "text",
+              "x": 0,
+              "y": 4,
+              "width": 24,
+              "height": 1,
+              "properties": {
+                "markdown": "\n## 【メトリクス】\n"
+              }
+            },
+            {
+              "type": "metric",
+              "x": 0,
+              "y": 5,
+              "width": 12,
+              "height": 3,
+              "properties": {
+                "view": "timeSeries",
+                "stacked": false,
+                "metrics": [
+                  [ "AWS/ApiGateway", "Latency", "ApiName", "${ApiName}" ]
+                ],
+                "region": "${AWS::Region}"
+              }
+            },
+            {
+              "type": "metric",
+              "x": 0,
+              "y": 11,
+              "width": 12,
+              "height": 3,
+              "properties": {
+                "metrics": [
+                    [ "AWS/ApiGateway", "4XXError", "ApiName", "${ApiName}" ]
+                ],
+                "view": "timeSeries",
+                "stacked": false,
+                "region": "${AWS::Region}",
+                "period": 300,
+                "stat": "Sum"
+              }
+            },
+            {
+              "type": "metric",
+              "x": 0,
+              "y": 8,
+              "width": 12,
+              "height": 3,
+              "properties": {
+                "metrics": [
+                    [ "AWS/ApiGateway", "5XXError", "ApiName", "${ApiName}" ]
+                ],
+                "view": "timeSeries",
+                "stacked": false,
+                "region": "${AWS::Region}",
+                "period": 300,
+                "stat": "Sum"
+              }
+            },
+            {
+              "type": "metric",
+              "x": 12,
+              "y": 5,
+              "width": 12,
+              "height": 3,
+              "properties": {
+                "metrics": [
+                    [ "AWS/DynamoDB", "ProvisionedReadCapacityUnits", "TableName", "${TableName}", { "label": "プロビジョニング済み", "color": "#d62728" } ],
+                    [ ".", "ConsumedReadCapacityUnits", ".", ".", { "label": "消費", "color": "#1f77b4" } ]
+                ],
+                "view": "timeSeries",
+                "stacked": false,
+                "region": "${AWS::Region}",
+                "legend": {
+                    "position": "bottom"
+                },
+                "yAxis": {
+                    "left": {
+                        "label": "",
+                        "showUnits": true
+                    },
+                    "right": {
+                        "showUnits": true
+                    }
+                },
+                "setPeriodToTimeRange": true,
+                "stat": "Average",
+                "period": 60,
+                "title": "DynamoDB 読み込みキャパシティー"
+              }
+            },
+            {
+              "type": "metric",
+              "x": 12,
+              "y": 8,
+              "width": 12,
+              "height": 3,
+              "properties": {
+                "metrics": [
+                  [ "AWS/DynamoDB", "ConsumedWriteCapacityUnits", "TableName", "${TableName}", { "label": "消費", "color": "#1f77b4" } ],
+                  [ ".", "ProvisionedWriteCapacityUnits", ".", ".", { "label": "プロビジョニング済み", "color": "#d62728" } ]
+                ],
+                "view": "timeSeries",
+                "stacked": false,
+                "region": "${AWS::Region}",
+                "legend": {
+                  "position": "bottom"
+                },
+                "yAxis": {
+                  "left": {
+                    "label": "",
+                    "showUnits": true
+                  },
+                  "right": {
+                    "showUnits": true
+                  }
+                },
+                "setPeriodToTimeRange": true,
+                "stat": "Average",
+                "period": 60,
+                "title": "DynamoDB 書き込みキャパシティー"
+              }
+            },
+            {
+              "type": "metric",
+              "x": 12,
+              "y": 11,
+              "width": 12,
+              "height": 3,
+              "properties": {
+                "metrics": [
+                  [ "AWS/DynamoDB", "ReadThrottleEvents", "TableName", "${TableName}", { "label": "スロットル読み込みイベント" } ]
+                ],
+                "view": "timeSeries",
+                "stacked": false,
+                "region": "${AWS::Region}",
+                "title": "DynamoDB スロットル読み込みイベント",
+                "period": 60,
+                "stat": "Average",
+                "legend": {
+                  "position": "hidden"
+                }
+              }
+            },
+            {
+              "type": "metric",
+              "x": 12,
+              "y": 14,
+              "width": 12,
+              "height": 3,
+              "properties": {
+                "metrics": [
+                  [ "AWS/DynamoDB", "WriteThrottleEvents", "TableName", "${TableName}", { "label": "スロットル書き込みイベント" } ]
+                ],
+                "view": "timeSeries",
+                "stacked": false,
+                "region": "${AWS::Region}",
+                "title": "DynamoDB スロットル書き込みイベント",
+                "period": 60,
+                "stat": "Average",
+                "legend": {
+                  "position": "hidden"
+                }
+              }
+            },
+            {
+              "type": "text",
+              "x": 0,
+              "y": 17,
+              "width": 24,
+              "height": 1,
+              "properties": {
+                "markdown": "\n## 【ログ】\n"
+              }
+            },
+            {
+              "type": "log",
+              "x": 0,
+              "y": 18,
+              "width": 12,
+              "height": 6,
+              "properties": {
+                "query": "SOURCE '/aws/cloudtrail/${SystemID}-${ComponentID}-dashboard' | filter eventName=\"ConsoleLogin\"\n| fields eventTime,userIdentity.userName as userName,additionalEventData.MFAUsed as MFAUsed,responseElements.ConsoleLogin as result\n| sort @timestamp desc\n| limit 50",
+                "region": "${AWS::Region}",
+                "stacked": true,
+                "view": "table",
+                "title": "AWSコンソールログインユーザ"
+              }
+            },
+            {
+              "type": "log",
+              "x": 12,
+              "y": 18,
+              "width": 12,
+              "height": 6,
+              "properties": {
+                "query": "SOURCE '/aws/cloudtrail/${SystemID}-${ComponentID}-dashboard' | filter eventName=\"PutObject\" or eventName=\"DeleteObjects\"\n| fields eventTime,eventName,requestParameters.key as fielName,userIdentity.userName as userName\n| sort eventTime desc\n| limit 50",
+                "region": "${AWS::Region}",
+                "stacked": false,
+                "title": "インポータ用S3バケットへのアクセス",
+                "view": "table"
+              }
+            },
+            {
+              "type": "log",
+              "x": 0,
+              "y": 24,
+              "width": 12,
+              "height": 6,
+              "properties": {
+                "query": "SOURCE '/aws/cloudtrail/${SystemID}-${ComponentID}-dashboard' | filter (eventName=\"StartPipelineExecution\" and requestParameters.name=\"${ImporterPipelineName}\") or ((eventName=\"StopPipelineExecution\" or eventName=\"PutApprovalResult\") and requestParameters.pipelineName=\"${ImporterPipelineName}\")\n| fields eventTime,eventName,userIdentity.userName as userName, requestParameters.result.summary as comment\n| sort eventTime desc\n| limit 50",
+                "region": "${AWS::Region}",
+                "stacked": false,
+                "view": "table",
+                "title": "インポータ用pipelineの実行"
+              }
+            }
+          ]
+        }
+      
+Outputs:
+  DashBoard:
+    Value: !Ref DashBoard

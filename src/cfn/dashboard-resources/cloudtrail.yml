@@ -1,0 +1,92 @@
+AWSTemplateFormatVersion: "2010-09-09"
+Description: "cloudtrail Resources of a dashboard"
+
+Parameters:
+  ParentStackName:
+    Type: "String"
+  SystemID:
+    Type: "String"
+  ComponentID:
+    Type: "String"
+  3dModelImporterRepositoryArn:
+    Type: "String"
+
+Resources:
+
+  CloudTrailS3bucket:
+    Type: "AWS::S3::Bucket"
+    DeletionPolicy: "Retain"
+
+  CloudTrailS3Policy:
+    Type: "AWS::S3::BucketPolicy"
+    Properties:
+      Bucket: !Sub '${CloudTrailS3bucket}'
+      PolicyDocument:
+        Version: '2012-10-17'
+        Statement:
+          - Effect: "Allow"
+            Principal:
+              Service: "cloudtrail.amazonaws.com"
+            Action: "s3:GetBucketAcl"
+            Resource: !Sub '${CloudTrailS3bucket.Arn}'
+          - Effect: "Allow"
+            Principal:
+              Service: 'cloudtrail.amazonaws.com'
+            Action: 's3:PutObject'
+            Resource: !Sub '${CloudTrailS3bucket.Arn}/*AWSLogs/${AWS::AccountId}/*'
+            Condition:
+              StringEquals:
+                's3:x-amz-acl': 'bucket-owner-full-control'
+
+  S3ObjectLevelCloudTrail:
+    Type: "AWS::CloudTrail::Trail"
+    DependsOn:
+      - "CloudTrailS3Policy"
+    Properties:
+      IsLogging: true
+      IsMultiRegionTrail: true
+      IncludeGlobalServiceEvents: true
+      S3BucketName: !Sub "${CloudTrailS3bucket}"
+      CloudWatchLogsLogGroupArn: !GetAtt CloudTrailLogGroup.Arn
+      CloudWatchLogsRoleArn: !GetAtt CloudTrailLogGroupRole.Arn
+      EventSelectors:
+        - DataResources:
+            - Type: "AWS::S3::Object"
+              Values:
+                - !Sub '${3dModelImporterRepositoryArn}/'
+          IncludeManagementEvents: true
+          ReadWriteType: "All"
+  
+  CloudTrailLogGroup:
+    Type: "AWS::Logs::LogGroup"
+    Properties:
+      RetentionInDays: 90
+      LogGroupName: !Sub "/aws/cloudtrail/${SystemID}-${ComponentID}-dashboard"
+
+  CloudTrailLogGroupPolicy:
+    Type: "AWS::IAM::ManagedPolicy"
+    Properties:
+      Path: "/"
+      PolicyDocument:
+        Version: "2012-10-17"
+        Statement:
+          - Action:
+              - "logs:CreateLogStream"
+              - "logs:PutLogEvents"
+            Effect: "Allow"
+            Resource: "*"
+
+  CloudTrailLogGroupRole:
+    Type: "AWS::IAM::Role"
+    Properties:
+      Path: "/"
+      AssumeRolePolicyDocument:
+        Statement:
+          - Effect: "Allow"
+            Principal:
+              Service:
+                - "cloudtrail.amazonaws.com"
+            Action:
+              - "sts:AssumeRole"
+      ManagedPolicyArns:
+        - !Ref CloudTrailLogGroupPolicy

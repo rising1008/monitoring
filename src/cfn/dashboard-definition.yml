@@ -1,0 +1,85 @@
+AWSTemplateFormatVersion: "2010-09-09"
+Description: "The monitoring dashboard resources"
+
+Parameters:
+  SystemID:
+    Type: "String"
+  ComponentID:
+    Type: "String"
+  TableName:
+    Type: "String"
+  ApiName:
+    Type: "String"
+  ImporterPipelineName:
+    Type: "String"
+  3dModelImporterRepositoryArn:
+    Type: "String"
+  DashboardTmplPath:
+    Type: "String"
+  CloudTrailTmplPath:
+    Type: "String"
+  SyntheticsTmplPath:
+    Type: "String"
+  LambdaCodeBucket:
+    Type: "String"
+  LambdaCodeKey:
+    Type: "String"
+  FrontendUrl:
+    Type: "String"
+  BackendUrl:
+    Type: "String"
+  UserPoolId:
+    Type: "String"
+  ClientId:
+    Type: "String"
+  CognitoUsername:
+    Type: "String"
+  CognitoPassword:
+    Type: "String"
+
+Resources:
+
+  SyntheticsStack:
+    Type: "AWS::CloudFormation::Stack"
+    Properties:
+      TemplateURL: !Ref SyntheticsTmplPath
+      TimeoutInMinutes: "5"
+      Parameters:
+        ParentStackName: !Ref AWS::StackName
+        SystemID: !Ref SystemID
+        ComponentID: !Ref ComponentID
+        LambdaCodeBucket: !Ref LambdaCodeBucket
+        LambdaCodeKey: !Ref LambdaCodeKey
+        FrontendUrl: !Ref FrontendUrl
+        BackendUrl: !Ref BackendUrl
+        UserPoolId: !Ref UserPoolId
+        ClientId: !Ref ClientId
+        CognitoUsername: !Ref CognitoUsername
+        CognitoPassword: !Ref CognitoPassword
+
+  DashboardStack:
+    Type: "AWS::CloudFormation::Stack"
+    Properties:
+      TemplateURL: !Ref DashboardTmplPath
+      TimeoutInMinutes: "5"
+      Parameters:
+        ParentStackName: !Ref AWS::StackName
+        SystemID: !Ref SystemID
+        ComponentID: !Ref ComponentID
+        TableName: !Ref TableName
+        ApiName: !Ref ApiName
+        ImporterPipelineName: !Ref ImporterPipelineName
+        FrontendAlarmArn: !GetAtt SyntheticsStack.Outputs.FrontendAlarmArn
+        BackendAlarmArn: !GetAtt SyntheticsStack.Outputs.BackendAlarmArn
+
+  CloudTrailStack:
+    Type: "AWS::CloudFormation::Stack"
+    Properties:
+      TemplateURL: !Ref CloudTrailTmplPath
+      TimeoutInMinutes: "5"
+      Parameters:
+        ParentStackName: !Ref AWS::StackName
+        SystemID: !Ref SystemID
+        ComponentID: !Ref ComponentID
+        3dModelImporterRepositoryArn: !Ref 3dModelImporterRepositoryArn
+
