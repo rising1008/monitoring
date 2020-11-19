@@ -34,12 +34,16 @@ function checkParameters() {
   echo -e "    Users source file: $INPUT_FILE"
 
   while ISF= read -r row || [[ -n "${row}" ]]; do
-    EMAIL=`echo ${row} | gawk -v FPAT='([^,]+)|(\".+\")' '{print $1}'`
-    PW=`echo ${row} | gawk -v FPAT='([^,]+)|(\".+\")' '{print $2}' | sed -e 's/^"\(.*\)".*$/\1/' | sed -e 's/""/"/'`
-    LANG=`echo ${row} | gawk -v FPAT='([^,]+)|(\".+\")' '{print $3}'`
+    linefeedTrimmed=`echo ${row} | sed -e 's/[\r\n]\+//g' | sed -e 's/[\n]\+//g'`
+
+    EMAIL=`echo ${linefeedTrimmed} | sed -e 's/\","/\" \"/g' | sed -e 's/\"\"/\"/g' | awk '{print $1}' | sed -e 's/^\"//' | sed -e 's/\"$//'`
+    PW=`echo ${linefeedTrimmed} | sed -e 's/\","/\" \"/g' | sed -e 's/\"\"/\"/g' | awk '{print $2}' | sed -e 's/^\"//' | sed -e 's/\"$//'`
+    LANG=`echo ${linefeedTrimmed} | sed -e 's/\","/\" \"/g' | sed -e 's/\"\"/\"/g' | awk '{print $3}' | sed -e 's/^\"//' | sed -e 's/\"$//'`
+
+    echo -e "      Check row (email/pw/language): $EMAIL / $PW / $LANG"
 
     if [ "x$EMAIL" = "x" -o "x$PW" = "x" -o "x$LANG" = "x" ]; then
-      echo "\n    [Error] Invalid row found on $INPUT_FILE. Please check input CSV."
+      echo -e "\n    [Error] Invalid row found on $INPUT_FILE. Please check input CSV."
       exit 1
     fi
   done < $INPUT_FILE
@@ -59,22 +63,24 @@ function deleteCurrentUsers() {
 }
 
 function createUsers() {
-  local firstRowSkipped=false
   local userCount=0
 
   echo -e "  Create users start.\n"
   while ISF= read -r row || [[ -n "${row}" ]]; do
-    if [ $firstRowSkipped = false ]; then
-      firstRowSkipped=true
-      continue
-    fi
     userCount=$((++userCount))
 
-    EMAIL=`echo ${row} | gawk -v FPAT='([^,]+)|(\".+\")' '{print $1}'`
-    PW=`echo ${row} | gawk -v FPAT='([^,]+)|(\".+\")' '{print $2}' | sed -e 's/^"\(.*\)".*$/\1/' | sed -e 's/""/"/'`
-    LANG=`echo ${row} | gawk -v FPAT='([^,]+)|(\".+\")' '{print $3}'`
+    linefeedTrimmed=`echo ${row} | sed -e 's/[\r\n]\+//g' | sed -e 's/[\n]\+//g'`
+
+    EMAIL=`echo ${linefeedTrimmed} | sed -e 's/\","/\" \"/g' | sed -e 's/\"\"/\"/g' | awk '{print $1}' | sed -e 's/^\"//' | sed -e 's/\"$//'`
+    PW=`echo ${linefeedTrimmed} | sed -e 's/\","/\" \"/g' | sed -e 's/\"\"/\"/g' | awk '{print $2}' | sed -e 's/^\"//' | sed -e 's/\"$//'`
+    LANG=`echo ${linefeedTrimmed} | sed -e 's/\","/\" \"/g' | sed -e 's/\"\"/\"/g' | awk '{print $3}' | sed -e 's/^\"//' | sed -e 's/\"$//'`
 
     echo -e "    <$userCount> Loaded data (email/pw/lang): $EMAIL / $PW / $LANG"
+
+    if [ $LANG != "ja" ] && [ $LANG != "en" ]; then
+      echo -e "\n        [Error] Invalid language code found. Please check input CSV.\n"
+      continue
+    fi
 
     CREATED_USERNAME=$(aws cognito-idp admin-create-user \
       --user-pool-id ${USER_POOL_ID} \

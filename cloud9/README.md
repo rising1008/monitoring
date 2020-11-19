@@ -4,19 +4,9 @@
 
 ## 注意事項
 
-- Cloud9 上で CSV を管理して編集する場合、正しい形式の CSV で保存してください。形式がよくわからない場合は、Excel などのツールで生成したものを Cloud9 にアップロードすることをおすすめします。
+- Cloud9 上で CSV を管理して編集する場合、正しい形式の CSV で保存してください。CSV の仕様については下記、Project の Confluence を参照してください。
 
-    ■ 例: パスワードにカンマを含む場合 (CSV を Excel などで見たときの PW: `sample,password`)
-    ```
-    Email,Password,Language
-    sample-user@example.com,"sample,password",ja
-    ```
-
-    ■ 例: パスワードカンマとダブルクオートを含む場合 (CSV を Excel などで見たときの PW: `sample,password-"!`)
-    ```
-    Email,Password,Language
-    sample-user@example.com,"sample,password-""!",ja
-    ```
+    https://ty-skywalker.atlassian.net/wiki/spaces/SKYWALKER/pages/16711712
 
 
 ## ユーザ登録方法
@@ -25,7 +15,6 @@
 
 1. CSV ファイルに登録するユーザの一覧を作成する
 
-    - `cloud9/scripts/users-template.csv` をコピーして利用している場合は気にする必要はありませんが、CSV に記載する各項目の順番は **Email, Password, Language の順番** でお願いします。
     - CSV のファイル名は下記の表に従い、登録対象の環境により名前を変更してください。
 
     ■ CSV ファイルの名前
@@ -51,9 +40,8 @@
 
     ■ CSV の例
     ```
-    Email,Password,Language
-    sample-ja@example.com,some-password,ja
-    sample-en@example.com,some-password,en
+    "sample-ja@example.com","some-password","ja"
+    "sample-en@example.com","some-password","en"
     ```
 
 1. CSV ファイルを Cloud9 にアップロードする
