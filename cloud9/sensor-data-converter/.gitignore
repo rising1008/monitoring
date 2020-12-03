@@ -1,0 +1,5 @@
+/input-files/*
+!.gitkeep
+
+/output-file/*
+!.gitkeep
