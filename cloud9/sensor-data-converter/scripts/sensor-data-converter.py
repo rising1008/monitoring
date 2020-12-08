@@ -62,8 +62,8 @@ def main():
                     dic["category"] = category
                     dic["latitude"] = latitude
                     dic["longitude"] = longitude
-                    dic["z"] = z
-                    dic["x"] = x
+                    dic["x"] = z * 100
+                    dic["z"] = x * 100 * (-1)
                     list.append(dic)
                     totalDataNum += 1
                 except:
