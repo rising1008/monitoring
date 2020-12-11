@@ -4,7 +4,7 @@
 
 ## 注意事項
 
-- 変換後に出力される json ファイル名は、`12c62cfb-1d46-4efe-89f3-afb617611856.json` から変更しないでください。
+- 変換後に出力される json ファイル名は、`dc1a4f0d-c03c-4d3f-8925-0e893b6f4029.json` から変更しないでください。
 
 ## センサーデータ変換方法
 
@@ -35,8 +35,8 @@
 1. S3 へ json ファイルをアップロードする
 
     - [S3 バケット](https://s3.console.aws.amazon.com/s3/buckets/skywalker-3d-model-importer-3dmodeldatarepository-1gltwr8olsws7?region=ap-northeast-1&tab=objects) に json ファイルをアップロードします。
-    - S3 バケットの直下にある sensor-data フォルダの直下に、json ファイルを格納してください。  
-    ※ sensor-data/12c62cfb-1d46-4efe-89f3-afb617611856.json
+    - 対象の uuid のフォルダ内にある sensor-data フォルダの直下に、json ファイルを格納してください。  
+    ※ 宮田工場の場合: 540d4957-c192-42a3-aa9a-7220de7e27b7/sensor-data/dc1a4f0d-c03c-4d3f-8925-0e893b6f4029.json
 
 1. インポーターパイプラインをを実行する
 
